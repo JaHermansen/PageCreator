@@ -1,4 +1,4 @@
 os
 hutil
-PIL import Image
+PIL
 openpyxl
