@@ -1,5 +1,4 @@
-from openpyxl import load_workbook
-from openpyxl.utils import column_index_from_string
+import openpyxl
 import os
 import shutil
 from PIL import Image
