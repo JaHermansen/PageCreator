@@ -1,4 +1,7 @@
-pandas
 streamlit
+pandas
+io
 openpyxl
+os
+shutil
 pillow
