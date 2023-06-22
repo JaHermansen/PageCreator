@@ -6,8 +6,13 @@ from openpyxl.utils import column_index_from_string
 import os
 import shutil
 from PIL import Image
+from pathlib import Path
+import tempfile
+import zipfile
 
-downloads_path = os.path.join(os.path.expanduser("~"), "Downloads")
+#downloads_path = "os.path.join(os.path.expanduser("~"), "Downloads")"
+downloads_path = str(Path.home() / 'Downloads')
+
 # Page icon
 icon = Image.open('paa1.png')
 
@@ -34,7 +39,7 @@ def display_upload(uploaded_file):
         xls = pd.ExcelFile(uploaded_file)
         sheet_names = xls.sheet_names
         sheet = st.sidebar.selectbox("Choose a sheet", sheet_names)
-        df = load_excel(uploaded_file, sheet)
+        df = load_excel(uploaded_file, sheet[1])
         st.session_state["file_name"] = uploaded_file.name
         st.session_state["is_file_uploaded"] = True
 
@@ -78,6 +83,8 @@ def generate_files(df_extracted_rows, template_file_path, output_path=downloads_
             else:
                 sheet[cell] = value
 
+    files_generated = []  # List to hold all the files generated
+
     for i, row in df_extracted_rows.iterrows():
         file_name = row[column_index_from_string('F') - 1]  # Get the value in cell F
         new_file = os.path.join(output_path, f'{file_name}.xlsx')  # Use the value in cell F as the file name
@@ -102,6 +109,23 @@ def generate_files(df_extracted_rows, template_file_path, output_path=downloads_
         overwrite_cells(sheet, 'D23', text_input3)
 
         book.save(new_file)
+        files_generated.append(new_file)  # Add the new file to the list
+
+    # Now that all files are generated, zip them
+    zip_file_path = os.path.join(output_path, "all_files.zip")
+
+    with zipfile.ZipFile(zip_file_path, 'w') as zipf:
+        for file in files_generated:
+            zipf.write(file, arcname=os.path.basename(file))
+
+    #st.write(f"Files generated: {files_generated}")  # Print out all the files generated for debugging
+    #st.write(f"Zip file path: {zip_file_path}")  # Print the zip file path for debugging
+    
+    if os.path.exists(zip_file_path):  # Check if the file exists
+        return zip_file_path
+    else:
+        st.error("Failed to create zip file.")
+
 
 
 def main():
@@ -137,14 +161,29 @@ def main():
         text_input2 = st.text_input("Sektion")  # to cell B-I 22
         text_input3 = st.text_input("Delområde")  # to cell B-I 23
 
-        if st.button('Generate Files'):
-            generate_files(
-                st.session_state["df_extracted_rows"],
-                template_file_path=st.session_state["template_file_path"],
-                text_input1=text_input1,
-                text_input2=text_input2,
-                text_input3=text_input3
+    if st.button('Generate Files'):
+        zip_file_path = generate_files(
+            st.session_state["df_extracted_rows"],
+            template_file_path=st.session_state["template_file_path"],
+            text_input1=text_input1,
+            text_input2=text_input2,
+            text_input3=text_input3
+        )
+
+        st.write(f"Zip file path: {zip_file_path}")  # Print the zip file path for debugging
+
+        if zip_file_path is not None and os.path.exists(zip_file_path):  # Check if the file exists
+            with open(zip_file_path, "rb") as f:
+                bytes_data = f.read()
+
+            st.download_button(
+                label='Download Generated Files',
+                data=bytes_data,
+                file_name='generated_files.zip',
+                mime='application/zip'
             )
+        else:
+            st.error("The file does not exist.")
     else:
         if not uploaded_file:
             st.warning("Please upload a data file first.")
