@@ -1,4 +1,4 @@
-# PAA Excel Page Creator
+# Excel Page Creator
 
 This Streamlit app allows you to generate Excel front pages based on uploaded data files and a template. You can specify values for overwriting specific cells in the template and then generate a zip file containing the generated Excel files.
 
